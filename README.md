@@ -16,7 +16,8 @@ Instructions:
 1. GUI utilizes images numbered starting from 0
 
 2. The bash script renames all images in a directory as needed.
-   run rename_images.sh
+   run ./rename_images.sh
+   If permission denied, first run "chmod +x rename_images.sh" (without quotes)  before the above command.
 
 3. To run the GUI
    run python image_annotation_gui.py path-to-configFile
