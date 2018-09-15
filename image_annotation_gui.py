@@ -114,8 +114,8 @@ class Application:
 		self.log_object_text.place(x = 1000, y = 80)
 
 		self.root.config(cursor="arrow")
-
-
+		self.readLogFile = open(self.output_dir + '/' + self.image_folder + '_log.txt','r').readlines()
+		self.start = True
 
 		self.video_loop()
 
@@ -123,11 +123,18 @@ class Application:
 	def video_loop(self):
 		
 		""" Get frame from the video stream and show it in Tkinter """
-		if self.frame_no != 0:
+		if self.frame_no != 0 and self.start == True:
 			try:
-				self.index = self.img_list.index(str(open(self.output_dir + '/' + self.filename + '_log.txt','r').readlines()[-1].split('\t')[0]) + '.jpg') + 1 
+				self.index = self.img_list.index(str(self.readLogFile[-1].split('\t')[0])) + 1 
+				self.start = False
 			except:
 				pass
+
+		if len(self.readLogFile)!=0 and self.start == True:
+			self.index = self.img_list.index(str(self.readLogFile[-1].split('\t')[0])) + 1 
+			self.start = False
+
+
 		if  not self.is_paused:
 			self.frame_no = self.img_list[self.index].split('.')[0]
 			print(self.filename,'the filename is this' )
@@ -258,13 +265,16 @@ class Application:
 		largest_x = int(np.max([pt[0] for pt in points])/self.mul)
 		largest_y = int(np.max([pt[1] for pt in points])/self.mul)
 		box_img = cv2.rectangle(image,(smallest_x,smallest_y),(largest_x,largest_y),(0,255,0))
+		# box_img = Image.fromarray(image)
+		# box_img.save(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no))
 		cv2.imwrite(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no),box_img)
-		cv2.imwrite(self.output_dir + '/boxes/' + '{}.jpg'.format(frame_no),
+		cv2.imwrite(self.output_dir + '/boxes/' + '{}.jpg'.format(self.frame_no),
 			image[smallest_y:largest_y,smallest_x:largest_x])
 
 		# Show cropped image on gui
 		self.panel2 = tk.Label(self.root)  # initialize panel for cropped image
 		self.panel2.place(x = 50,y = 600)
+		# img = cv2.resize(box_img,(100,100))
 		img = cv2.resize(image[smallest_y:largest_y,smallest_x:largest_x],(100,100))
 		current_image = Image.fromarray(img)  # convert image for PIL
 		imgtk = ImageTk.PhotoImage(image=current_image)  # convert image for tkinter 
