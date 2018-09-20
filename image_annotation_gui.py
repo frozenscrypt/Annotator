@@ -139,15 +139,20 @@ class Application:
 			self.frame_no = self.img_list[self.index].split('.')[0]
 			print(self.filename,'the filename is this' )
 			self.frame = cv2.imread(self.filename + '/' + self.image_folder + '/' + self.img_list[self.index])
+			if self.frame.size >= 640*360*3:
+				self.mul = np.array([640,360])/np.array(self.frame.shape[-2::-1])
+			else:
+				self.mul = [1,1]
+
 			self.global_image_frame = self.frame
 			self.is_paused = True
 			self.x_topleft,self.y_topleft,self.x_bottomright,self.y_bottomright,self.x_live,self.y_live = 0,0,0,0,0,0
 		else:
 			self.frame = self.global_image_frame
 
-		cv2image = self.frame 
+		cv2image = self.frame.copy() 
 		r,col,ch = cv2image.shape
-		cv2resized = cv2.resize(cv2image,fx = self.mul,fy = self.mul,dsize = (0,0))
+		cv2resized = cv2.resize(cv2image,fx = self.mul[0],fy = self.mul[1],dsize = (0,0))
 
 
 		if True:  # frame captured without any errors
@@ -165,7 +170,7 @@ class Application:
 				print(self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr,'this is call bottoms')
 				self.prev_xbr,self.prev_ybr = self.x_bottomright,self.y_bottomright
 				self.points += [(self.prev_xbr,self.prev_ybr)]
-				thread1 = threading.Thread(target=self.boundingbox,args=(cv2image,self.filename,self.frame_no,self.points))
+				thread1 = threading.Thread(target=self.boundingbox,args=(cv2image,self.frame_no,self.points))
 				thread1.start()
 
 			if (self.x_live, self.y_live)!=(self.prev_xl, self.prev_yl):
@@ -190,91 +195,26 @@ class Application:
 		thread2.start()
 		
 
-	def api_calls(self): 
-		# global delay,text,mul,rotation_signal,frame_no,output_dir
-		time.sleep(delay)   
-		img = global_image_frame
-		cv2.imwrite(output_dir + '/img.jpg',img)
-		img = open("/home/vivek/IBI/output_1_hour_masked/img.jpg","rb").read()
-		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-		data = {'img':img,'frame_no':str(frame_no)}
-		print('line 198-----------------')
-		r = json.loads(requests.request('post',url = 'http://localhost:5000/predict',files = data).json())
-		print(r)
-		# bdata = json.loads(r['boxes'])#json.loads(r.decode('utf-8'))['boxes']
-		try:
-			boxes = r#np.array(bdata)#np.array(json.loads(bdata))
-		except:
-			boxes = ''
-		if type(boxes)==str:
-			self.text_object.insert(tk.END,'No Boxes Detected')
-		else:
-			self.panel_list = []
-			for i in range(len(boxes)):
-				panel = tk.Label(self.root)
-				panel.place(x = 50,y = 100 + 100*i )
-				self.panel_list.append(panel)
-			print(type(boxes),'the type of box pos1',type(boxes['0']))
-			boxes_tmp = {}
-			for k,box in boxes.items():
-				tmp_box={}
-				for k1,pt in box.items():
-					temp_pt = {}
-					temp_pt['x'] = pt[0]
-					temp_pt['y'] = pt[1]
-					tmp_box[k1] = temp_pt.copy()
-				boxes_tmp[k] = tmp_box.copy()
-			print(boxes_tmp)
-			# for item in zip(boxes.tolist(),self.panel_list):
-			# 	smx = int(min([pt[0] for pt in item[0]]))
-			# 	lgx = int(max([pt[0] for pt in item[0]]))
-			# 	smy = int(min([pt[1] for pt in item[0]]))
-			# 	lgy = int(max([pt[1] for pt in item[0]]))
-			# 	im = global_image_frame[smy*mul:lgy*mul,smx*mul:lgx*mul]
-			# 	im = cv2.resize(im,(100,50))
-			# 	current_image = Image.fromarray(im)  # convert image for PIL
-			# 	imgtk = ImageTk.PhotoImage(image=current_image)
-			# 	item[1].imgtk = imgtk
-			# 	item[1].config(image = imgtk)
-			# self.log_object.insert(tk.END,'The box for frame {} is created\n'.format(frame_no))
-			# boxes = boxes.tolist()
-			'''Here is the json data sent with the request'''
-			print(type(boxes),'the type of box pos2',type(img))
-			print(boxes)
-			data = {'img':img,'frame_no':str(frame_no),'boxes':json.dumps(boxes_tmp.copy()),'index':str(0)}
-			r = requests.request('post',url = 'http://localhost:5000/recognize',files = data)
-			print(r,'the output from recognizer')
-			tdata = json.loads(r.decode('utf-8'))
-			text = ast.literal_eval(tdata['text'])
-			text_list = []
-			for word in text:
-				txt = [i + ' ' for i in word]
-				ftxt = ''.join(txt)
-				text_list.append(ftxt)
-			self.panel3.delete('1.0',tk.END)
-			self.text_object.delete('1.0',tk.END)
-			self.panel3.insert(tk.END,text_list)
-			self.text_object.insert(tk.END,text_list)
-			self.log_object.insert(tk.END,'The recognition of plate for frame {} is done\n'.format(frame_no))
-	   
-	def boundingbox(self,image,filename,frame_no,points):
+	
+	def boundingbox(self,image,frame_no,points):
 		# global log_list,text,mul,rotation_signal
 		print(points,'line 258')
-		smallest_x = int(np.min([pt[0] for pt in points])/self.mul)
-		smallest_y = int(np.min([pt[1] for pt in points])/self.mul)
-		largest_x = int(np.max([pt[0] for pt in points])/self.mul)
-		largest_y = int(np.max([pt[1] for pt in points])/self.mul)
+		smallest_x = int(np.min([pt[0] for pt in points])/self.mul[0])
+		smallest_y = int(np.min([pt[1] for pt in points])/self.mul[1])
+		largest_x = int(np.max([pt[0] for pt in points])/self.mul[0])
+		largest_y = int(np.max([pt[1] for pt in points])/self.mul[1])
 		box_img = cv2.rectangle(image,(smallest_x,smallest_y),(largest_x,largest_y),(0,255,0))
 		# box_img = Image.fromarray(image)
 		# box_img.save(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no))
 		cv2.imwrite(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no),box_img)
 		cv2.imwrite(self.output_dir + '/boxes/' + '{}.jpg'.format(self.frame_no),
-			image[smallest_y:largest_y,smallest_x:largest_x])
+			self.frame[smallest_y:largest_y,smallest_x:largest_x])
 
 		# Show cropped image on gui
 		self.panel2 = tk.Label(self.root)  # initialize panel for cropped image
 		self.panel2.place(x = 50,y = 600)
 		# img = cv2.resize(box_img,(100,100))
+		print(smallest_y,largest_y,smallest_x,largest_x)
 		img = cv2.resize(image[smallest_y:largest_y,smallest_x:largest_x],(100,100))
 		current_image = Image.fromarray(img)  # convert image for PIL
 		imgtk = ImageTk.PhotoImage(image=current_image)  # convert image for tkinter 
@@ -298,7 +238,7 @@ class Application:
 			self.panel2.destroy()
 		except:
 			pass
-		self.is_paused = True#False
+		self.is_paused = False
 		if self.is_submit == False:
 			self.log_list.remove(self.log_list[-1])
 		self.x_topleft,self.y_topleft,self.x_bottomright,self.y_bottomright,self.x_live,self.y_live = 0,0,0,0,0,0
@@ -325,7 +265,7 @@ class Application:
 		self.is_paused = False
 		self.is_submit = True
 		print(self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr,'this is bottoms')
-
+		self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr = 0,0,0,0
 
 	#Top Left Click
 	def top_left_click(self,event):
@@ -358,8 +298,10 @@ class Application:
 	def previous_call(self):
 
 		self.is_paused = False
-		self.index-=1
-
+		if self.index!=0:
+			self.index-=1
+		else:
+			pass
 
 
 
