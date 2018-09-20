@@ -10,7 +10,7 @@ Tool is under maintenance and feature additions with video annotation script com
 * pip install Pillow
 
 
-##Instructions: ##
+## Instructions: ##
 
 * GUI utilizes images numbered starting from 1
 
