@@ -16,9 +16,6 @@ import tensorflow as tf
 import os.path as ops
 from os import path
 import matplotlib.pyplot as plt
-import itertools
-# import handlers
-import requests
 import ast
 
 
@@ -28,7 +25,6 @@ import ast
 def init_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('config_file', type=str, help = 'config file name')
-
 	return parser.parse_args()
 
 
@@ -63,10 +59,9 @@ class Application:
 		
 		self.config = init_args()
 		self.args = json.loads(open(self.config.config_file).read())
-		print(self.args,type(self.args))
-		self.filename = self.args['filename']#self.args.filename
-		self.output_dir = self.args['output_dir']#self.args.output_dir
-		self.image_folder = self.args['image_folder']#image_folder
+		self.filename = self.args['filename']
+		self.output_dir = self.args['output_dir']
+		self.image_folder = self.args['image_folder']
 		self.frame_no = self.args['frame_no']
 		self.mul = self.args['mul']
 		if not os.path.exists(self.output_dir):
@@ -78,7 +73,6 @@ class Application:
 
 		self.log = open(self.output_dir + '/' + self.image_folder + '_log.txt','a')
 		self.img_list =  [f for f in os.listdir(self.filename + '/' + self.image_folder + '/')]
-		print(self.img_list)
 		self.current_image = None  # current image from the camera
 
 		self.root = tk.Tk()  # initialize root window
@@ -137,7 +131,6 @@ class Application:
 
 		if  not self.is_paused:
 			self.frame_no = self.img_list[self.index].split('.')[0]
-			print(self.filename,'the filename is this' )
 			self.frame = cv2.imread(self.filename + '/' + self.image_folder + '/' + self.img_list[self.index])
 			if self.frame.size >= 640*360*3:
 				self.mul = np.array([640,360])/np.array(self.frame.shape[-2::-1])
@@ -165,9 +158,7 @@ class Application:
 				self.prev_xtl,self.prev_ytl = self.x_topleft,self.y_topleft
 				self.points = [(self.prev_xtl,self.prev_ytl)]
 				self.is_paused = True
-			print(self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr,'this is before bottoms')
 			if (self.x_bottomright, self.y_bottomright)!=(self.prev_xbr, self.prev_ybr) and self.is_paused:
-				print(self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr,'this is call bottoms')
 				self.prev_xbr,self.prev_ybr = self.x_bottomright,self.y_bottomright
 				self.points += [(self.prev_xbr,self.prev_ybr)]
 				thread1 = threading.Thread(target=self.boundingbox,args=(cv2image,self.frame_no,self.points))
@@ -197,15 +188,11 @@ class Application:
 
 	
 	def boundingbox(self,image,frame_no,points):
-		# global log_list,text,mul,rotation_signal
-		print(points,'line 258')
 		smallest_x = int(np.min([pt[0] for pt in points])/self.mul[0])
 		smallest_y = int(np.min([pt[1] for pt in points])/self.mul[1])
 		largest_x = int(np.max([pt[0] for pt in points])/self.mul[0])
 		largest_y = int(np.max([pt[1] for pt in points])/self.mul[1])
 		box_img = cv2.rectangle(image,(smallest_x,smallest_y),(largest_x,largest_y),(0,255,0))
-		# box_img = Image.fromarray(image)
-		# box_img.save(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no))
 		cv2.imwrite(self.output_dir + '/detections/' + '{}.jpg'.format(self.frame_no),box_img)
 		cv2.imwrite(self.output_dir + '/boxes/' + '{}.jpg'.format(self.frame_no),
 			self.frame[smallest_y:largest_y,smallest_x:largest_x])
@@ -213,8 +200,6 @@ class Application:
 		# Show cropped image on gui
 		self.panel2 = tk.Label(self.root)  # initialize panel for cropped image
 		self.panel2.place(x = 50,y = 600)
-		# img = cv2.resize(box_img,(100,100))
-		print(smallest_y,largest_y,smallest_x,largest_x)
 		img = cv2.resize(image[smallest_y:largest_y,smallest_x:largest_x],(100,100))
 		current_image = Image.fromarray(img)  # convert image for PIL
 		imgtk = ImageTk.PhotoImage(image=current_image)  # convert image for tkinter 
@@ -251,7 +236,6 @@ class Application:
 		self.text_object.delete('1.0',tk.END)
 		self.text_object.insert(tk.END,'Comment')
 		self.log_list[-1].append(commented_text)
-		print(self.log_list,'lalala')
 		try:
 			for panel in self.panel_list:
 				panel.destroy()
@@ -264,7 +248,6 @@ class Application:
 
 		self.is_paused = False
 		self.is_submit = True
-		print(self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr,'this is bottoms')
 		self.x_bottomright,self.y_bottomright,self.prev_xbr, self.prev_ybr = 0,0,0,0
 
 	#Top Left Click
@@ -317,7 +300,6 @@ class Application:
 		except:
 			pass
 		self.root.destroy()
-		# self.f.close()
 		self.log.close()
 	 
 	  
